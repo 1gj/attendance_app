@@ -138,7 +138,7 @@ class AttendanceApp extends StatelessWidget {
 }
 
 // ----------------------------------------------
-// 2. شاشة التحقق (AuthWrapper) - **تم الإصلاح والتعديل**
+// 2. شاشة التحقق (AuthWrapper)
 // ----------------------------------------------
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -351,7 +351,10 @@ class RoleBasedRedirector extends StatelessWidget {
       if (snapshot.exists && snapshot.value != null) {
         return snapshot.value.toString();
       } else {
-        return 'error_not_configured';
+        // إذا لم يجد الدور (ربما في لحظة إنشاء المستخدم)
+        // يعيد "employee" افتراضياً ليسمح للقاعدة بالعمل
+        // هذا يتم معالجته بقاعدة الأمان التي عدلناها
+        return 'employee';
       }
     } catch (e) {
       return 'error_exception';
@@ -406,7 +409,7 @@ class RoleBasedRedirector extends StatelessWidget {
 }
 
 // ----------------------------------------------
-// 5. شاشة المدير الرئيسية (AdminHomeScreen) - **تم إضافة زر الإشعار**
+// 5. شاشة المدير الرئيسية (AdminHomeScreen)
 // ----------------------------------------------
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
@@ -529,7 +532,6 @@ class AdminHomeScreen extends StatelessWidget {
                       );
                     },
                   ),
-                  // **الإضافة الجديدة: زر إرسال الإشعار**
                   _buildDashboardCard(
                     context: context,
                     icon: Icons.campaign,
@@ -574,48 +576,89 @@ class EmployeeHomeScreen extends StatelessWidget {
         ],
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'مرحباً بك في بصمة الحضور!',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 40),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.qr_code_scanner, size: 28),
-              label: const Text('مسح الكود (تسجيل الحضور / الانصراف)'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 20,
-                ),
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'مرحباً بك في بصمة الحضور!',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
               ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const QRScannerScreen(),
+              const SizedBox(height: 50),
+
+              // الزر الأول: تسجيل الحضور
+              ElevatedButton.icon(
+                icon: const Icon(Icons.login, size: 28), // أيقونة الدخول
+                label: const Text('تسجيل الحضور (Check-in)'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 30,
+                    vertical: 20,
                   ),
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'يرجى المسح مرتين: مرة عند الدخول ومرة عند الخروج.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.black54),
-            ),
-          ],
+                  backgroundColor: Colors.green, // لون الحضور
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      // نرسل "نوع" المسح إلى الشاشة التالية
+                      builder: (context) =>
+                          const QRScannerScreen(scanMode: ScanMode.checkIn),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 25),
+
+              // الزر الثاني: تسجيل الانصراف
+              ElevatedButton.icon(
+                icon: const Icon(Icons.logout, size: 28), // أيقونة الخروج
+                label: const Text('تسجيل الانصراف (Check-out)'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 30,
+                    vertical: 20,
+                  ),
+                  backgroundColor: Colors.blue, // لون الانصراف
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      // نرسل "نوع" المسح إلى الشاشة التالية
+                      builder: (context) =>
+                          const QRScannerScreen(scanMode: ScanMode.checkOut),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 30),
+              const Text(
+                'يرجى اختيار العملية الصحيحة قبل مسح الكود.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black54),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -718,11 +761,17 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen> {
   }
 }
 
+// إضافة نوع المسح (حضور أو انصراف)
+enum ScanMode { checkIn, checkOut }
+
 // ----------------------------------------------
 // 8. شاشة مسح الكود (تابعة للموظف)
 // ----------------------------------------------
 class QRScannerScreen extends StatefulWidget {
-  const QRScannerScreen({super.key});
+  // استقبال نوع المسح المطلوب
+  final ScanMode scanMode;
+
+  const QRScannerScreen({super.key, required this.scanMode});
   @override
   State<QRScannerScreen> createState() => _QRScannerScreenState();
 }
@@ -731,8 +780,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   final MobileScannerController _scannerController = MobileScannerController();
   bool _isScanProcessing = false;
 
-  // --- دالة تسجيل الحضور والانصراف الجديدة ---
-  Future<void> _recordAttendance(String qrCodeData) async {
+  // --- دالة تسجيل الحضور والانصراف الجديدة (معدلة بالكامل) ---
+  Future<void> _recordAttendance(String qrCodeData, ScanMode mode) async {
     // 1. تأكد أننا لم نعالج هذا المسح من قبل
     if (_isScanProcessing) return;
     setState(() {
@@ -755,60 +804,60 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       );
 
       final snapshot = await logRef.get();
+      final String userName =
+          (await rtdb.FirebaseDatabase.instance.ref('users/$uid/name').get())
+              .value
+              .toString();
 
-      if (!snapshot.exists) {
-        // --- السيناريو 1: تسجيل الحضور (Check-in) ---
-
-        final userNameSnapshot = await rtdb.FirebaseDatabase.instance
-            .ref('users/$uid/name')
-            .get();
-        final String userName = userNameSnapshot.exists
-            ? userNameSnapshot.value.toString()
-            : "موظف";
-
-        final Map<String, dynamic> attendanceData = {
-          'name': userName,
-          'checkInTime': now,
-          'qrCode': qrCodeData,
-          'status': 'present',
-        };
-
-        await logRef.set(attendanceData);
-        message = 'تم تسجيل حضورك بنجاح، $userName';
-        messageColor = Colors.green;
-
-        // *** إضافة الإشعار للمدير (نحتاج Cloud Function لهذا الجزء) ***
-        // نضع سجل في قاعدة بيانات لتلتقطه Cloud Function وترسل الإشعار
-        await rtdb.FirebaseDatabase.instance
-            .ref('admin_alerts_queue')
-            .push()
-            .set({'type': 'check_in', 'employeeName': userName, 'time': now});
-      } else {
-        // --- السيناريو 2 أو 3: السجل موجود ---
-        final logData = Map<String, dynamic>.from(snapshot.value as Map);
-
-        if (logData.containsKey('checkOutTime')) {
-          // --- السيناريو 3: تم الانصراف بالفعل ---
-          message = 'لقد سجلت الحضور والانصراف لهذا اليوم بالفعل.';
+      if (mode == ScanMode.checkIn) {
+        // --- السيناريو 1: المستخدم يريد "تسجيل الحضور" ---
+        if (snapshot.exists) {
+          message = 'لقد سجلت حضورك لهذا اليوم بالفعل.';
           messageColor = Colors.orange;
         } else {
-          // --- السيناريو 2: تسجيل الانصراف (Check-out) ---
-          await logRef.update({'checkOutTime': now, 'status': 'completed'});
+          final Map<String, dynamic> attendanceData = {
+            'name': userName,
+            'checkInTime': now,
+            'qrCode': qrCodeData,
+            'status': 'present',
+          };
 
-          message = 'تم تسجيل انصرافك. يومك سعيد!';
-          messageColor = Colors.blue;
+          await logRef.set(attendanceData);
+          message = 'تم تسجيل حضورك بنجاح، $userName';
+          messageColor = Colors.green;
 
-          // *** إضافة الإشعار للمدير (نحتاج Cloud Function لهذا الجزء) ***
-          // نضع سجل في قاعدة بيانات لتلتقطه Cloud Function وترسل الإشعار
-          final String userName = logData['name'] ?? 'موظف';
+          // إرسال تنبيه للمدير
           await rtdb.FirebaseDatabase.instance
               .ref('admin_alerts_queue')
               .push()
-              .set({
-                'type': 'check_out',
-                'employeeName': userName,
-                'time': now,
-              });
+              .set({'type': 'check_in', 'employeeName': userName, 'time': now});
+        }
+      } else if (mode == ScanMode.checkOut) {
+        // --- السيناريو 2: المستخدم يريد "تسجيل الانصراف" ---
+        if (!snapshot.exists) {
+          message = 'خطأ: يجب عليك تسجيل الحضور أولاً قبل الانصراف.';
+          messageColor = Colors.red;
+        } else {
+          final logData = Map<String, dynamic>.from(snapshot.value as Map);
+          if (logData.containsKey('checkOutTime')) {
+            message = 'لقد سجلت انصرافك لهذا اليوم بالفعل.';
+            messageColor = Colors.orange;
+          } else {
+            await logRef.update({'checkOutTime': now, 'status': 'completed'});
+
+            message = 'تم تسجيل انصرافك. يومك سعيد!';
+            messageColor = Colors.blue;
+
+            // إرسال تنبيه للمدير
+            await rtdb.FirebaseDatabase.instance
+                .ref('admin_alerts_queue')
+                .push()
+                .set({
+                  'type': 'check_out',
+                  'employeeName': userName,
+                  'time': now,
+                });
+          }
         }
       }
     } catch (e) {
@@ -832,13 +881,19 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // تغيير لون الشاشة والعنوان بناءً على نوع المسح
+    final bool isCheckingIn = widget.scanMode == ScanMode.checkIn;
+    final Color appBarColor = isCheckingIn ? Colors.green : Colors.blue;
+    final String title = isCheckingIn
+        ? 'مسح (تسجيل الحضور)'
+        : 'مسح (تسجيل الانصراف)';
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('مسح الكود'),
-        backgroundColor: Colors.transparent,
+        title: Text(title),
+        backgroundColor: appBarColor,
         elevation: 0,
       ),
-      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           MobileScanner(
@@ -848,7 +903,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
               final List<Barcode> barcodes = capture.barcodes;
               if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
-                _recordAttendance(barcodes.first.rawValue!);
+                // نمرر نوع المسح المطلوب إلى الدالة
+                _recordAttendance(barcodes.first.rawValue!, widget.scanMode);
               }
             },
           ),
@@ -858,9 +914,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               width: double.infinity,
               color: Colors.black54,
               padding: const EdgeInsets.all(20),
-              child: const Text(
-                'قم بتوجيه الكاميرا نحو الـ QR كود',
-                style: TextStyle(color: Colors.white, fontSize: 16),
+              child: Text(
+                'قم بتوجيه الكاميرا نحو الـ QR كود لـ $title',
+                style: const TextStyle(color: Colors.white, fontSize: 16),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -899,8 +955,13 @@ class EmployeeStatusScreen extends StatelessWidget {
           if (usersSnapshot.hasError) {
             return const Center(child: Text('خطأ في جلب قائمة الموظفين'));
           }
+          if (usersSnapshot.data?.value == null) {
+            return const Center(child: Text('لا يوجد موظفون معرفون.'));
+          }
 
-          final usersMap = usersSnapshot.data!.value as Map<dynamic, dynamic>;
+          final usersMap = Map<dynamic, dynamic>.from(
+            usersSnapshot.data!.value as Map,
+          );
           final usersList = usersMap.entries.toList();
 
           return StreamBuilder(
@@ -909,7 +970,9 @@ class EmployeeStatusScreen extends StatelessWidget {
               final logsMap =
                   (logsSnapshot.hasData &&
                       logsSnapshot.data!.snapshot.value != null)
-                  ? logsSnapshot.data!.snapshot.value as Map<dynamic, dynamic>
+                  ? Map<dynamic, dynamic>.from(
+                      logsSnapshot.data!.snapshot.value as Map,
+                    )
                   : <dynamic, dynamic>{};
 
               return ListView.builder(
@@ -917,7 +980,10 @@ class EmployeeStatusScreen extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final userEntry = usersList[index];
                   final userUid = userEntry.key;
-                  final userData = userEntry.value as Map<dynamic, dynamic>;
+
+                  final userData = Map<dynamic, dynamic>.from(
+                    userEntry.value as Map,
+                  );
                   final name = userData['name'] ?? 'موظف غير معروف';
                   final role = userData['role'] ?? 'employee';
 
@@ -925,8 +991,9 @@ class EmployeeStatusScreen extends StatelessWidget {
                     return Container();
                   }
 
-                  final schedule =
-                      userData['workSchedule'] as Map<dynamic, dynamic>? ?? {};
+                  final schedule = Map<dynamic, dynamic>.from(
+                    userData['workSchedule'] as Map? ?? {},
+                  );
                   final bool isWorkDay = schedule[todayKey] ?? false;
 
                   final bool isPresent = logsMap.containsKey(userUid);
@@ -934,47 +1001,56 @@ class EmployeeStatusScreen extends StatelessWidget {
                   String statusText;
                   IconData statusIcon;
                   Color statusColor;
-                  String timeText = '--:-- صباحاً';
+                  String subtitleText;
 
                   if (!isWorkDay) {
                     statusText = 'عطلة';
                     statusIcon = Icons.nightlight_round;
                     statusColor = Colors.grey.shade600;
+                    subtitleText = 'يوم عطلة حسب الجدول';
                   } else if (isPresent) {
-                    final logData = logsMap[userUid];
+                    final logData = Map<dynamic, dynamic>.from(
+                      logsMap[userUid] as Map,
+                    );
+                    String timeIn = '--:--';
+
+                    try {
+                      final String? checkInTimeRaw = logData['checkInTime'];
+                      if (checkInTimeRaw != null) {
+                        final dt = DateTime.parse(checkInTimeRaw);
+                        timeIn = DateFormat('hh:mm a', 'ar').format(dt);
+                      }
+                    } catch (e) {
+                      timeIn = 'خطأ';
+                    }
 
                     if (logData.containsKey('checkOutTime')) {
                       statusText = 'أكمل الدوام';
                       statusIcon = Icons.task_alt;
                       statusColor = Colors.indigo.shade600;
+
+                      String timeOut = '--:--';
                       try {
-                        timeText = DateFormat('hh:mm a', 'ar').format(
-                          DateTime.parse(logData['checkInTime']),
-                        ); // وقت الدخول
+                        final String? checkOutTimeRaw = logData['checkOutTime'];
+                        if (checkOutTimeRaw != null) {
+                          final dt = DateTime.parse(checkOutTimeRaw);
+                          timeOut = DateFormat('hh:mm a', 'ar').format(dt);
+                        }
                       } catch (e) {
-                        timeText = "وقت غير صالح";
+                        timeOut = 'خطأ';
                       }
+                      subtitleText = 'دخول: $timeIn | خروج: $timeOut';
                     } else {
                       statusText = 'حاضر';
                       statusIcon = Icons.check_circle;
                       statusColor = Colors.green.shade700;
-
-                      try {
-                        final String? checkInTimeRaw = logData['checkInTime'];
-                        if (checkInTimeRaw != null) {
-                          final dt = DateTime.parse(checkInTimeRaw);
-                          timeText = DateFormat('hh:mm a', 'ar').format(dt);
-                        } else {
-                          timeText = "خطأ: لا يوجد وقت دخول";
-                        }
-                      } catch (e) {
-                        timeText = 'خطأ في الوقت';
-                      }
+                      subtitleText = 'الحضور: $timeIn';
                     }
                   } else {
                     statusText = 'غائب';
                     statusIcon = Icons.cancel;
                     statusColor = Colors.red.shade700;
+                    subtitleText = 'لم يسجل حضور';
                   }
 
                   return Card(
@@ -996,8 +1072,8 @@ class EmployeeStatusScreen extends StatelessWidget {
                         ),
                       ),
                       subtitle: Text(
-                        isWorkDay ? 'الحضور: $timeText' : 'يوم عطلة حسب الجدول',
-                        style: TextStyle(color: Colors.black54),
+                        subtitleText,
+                        style: const TextStyle(color: Colors.black54),
                       ),
                       trailing: Container(
                         padding: const EdgeInsets.symmetric(
@@ -1030,10 +1106,80 @@ class EmployeeStatusScreen extends StatelessWidget {
 }
 
 // ----------------------------------------------
-// 10. شاشة إدارة الموظفين
+// 10. شاشة إدارة الموظفين - **-- [تمت إضافة زر الحذف] --**
 // ----------------------------------------------
 class ManageEmployeesScreen extends StatelessWidget {
   const ManageEmployeesScreen({super.key});
+
+  // --- [إضافة جديدة] ---
+  // دالة إظهار رسالة تأكيد الحذف
+  void _showDeleteDialog(
+    BuildContext context,
+    String employeeUid,
+    String employeeName,
+  ) {
+    // التأكد من أن المدير لا يحاول حذف نفسه
+    if (employeeUid == FirebaseAuth.instance.currentUser?.uid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لا يمكنك حذف حسابك (المدير).'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تأكيد الحذف'),
+        content: Text(
+          'هل أنت متأكد أنك تريد حذف الموظف "$employeeName"؟'
+          '\n\nسيتم حذف حسابه (Authentication) وبياناته (Database) بشكل نهائي.',
+        ),
+        actions: [
+          TextButton(
+            child: const Text('إلغاء'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('حذف نهائي'),
+            onPressed: () {
+              // --- [إضافة جديدة] ---
+              // إرسال طلب الحذف إلى الـ Cloud Function
+              _requestDeleteEmployee(employeeUid);
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('تم إرسال طلب الحذف...'),
+                  backgroundColor: Colors.blue,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- [إضافة جديدة] ---
+  // دالة إرسال الطلب إلى قاعدة البيانات
+  Future<void> _requestDeleteEmployee(String uidToDelete) async {
+    try {
+      final adminUid = FirebaseAuth.instance.currentUser!.uid;
+      await rtdb.FirebaseDatabase.instance.ref('delete_requests').push().set({
+        'uidToDelete': uidToDelete,
+        'requestedByAdmin': adminUid,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      print("خطأ في إرسال طلب الحذف: $e");
+    }
+  }
+  // --- [نهاية الإضافات] ---
 
   @override
   Widget build(BuildContext context) {
@@ -1054,8 +1200,9 @@ class ManageEmployeesScreen extends StatelessWidget {
             return const Center(child: Text('لا يوجد موظفون حتى الآن.'));
           }
 
-          final usersMap =
-              snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+          final usersMap = Map<dynamic, dynamic>.from(
+            snapshot.data!.snapshot.value as Map,
+          );
           final usersList = usersMap.entries.toList();
 
           return ListView.builder(
@@ -1063,7 +1210,10 @@ class ManageEmployeesScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final userEntry = usersList[index];
               final employeeUid = userEntry.key;
-              final userData = userEntry.value as Map<dynamic, dynamic>;
+
+              final userData = Map<dynamic, dynamic>.from(
+                userEntry.value as Map,
+              );
 
               final String name = userData['name'] ?? 'حساب (لا يوجد اسم)';
               final String role = userData['role'] ?? 'غير معروف';
@@ -1087,8 +1237,57 @@ class ManageEmployeesScreen extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text('الدور: $role'),
-
+                  trailing: Wrap(
+                    spacing: -16, // تقليل المسافة
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.calendar_month_outlined),
+                        tooltip: 'تعديل جدول الدوام',
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EmployeeScheduleScreen(
+                                employeeUid: employeeUid,
+                                employeeName: name,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.bar_chart, color: Colors.indigo),
+                        tooltip: 'عرض تقرير الموظف',
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EmployeeReportScreen(
+                                employeeUid: employeeUid,
+                                employeeName: name,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      // --- [إضافة جديدة] ---
+                      // زر الحذف
+                      IconButton(
+                        icon: Icon(
+                          Icons.delete_forever,
+                          color: Colors.red[700],
+                        ),
+                        tooltip: 'حذف الموظف',
+                        onPressed: () {
+                          // استدعاء دالة التأكيد
+                          _showDeleteDialog(context, employeeUid, name);
+                        },
+                      ),
+                      // --- [نهاية الإضافة] ---
+                    ],
+                  ),
                   onTap: () {
+                    // يمكن إبقاء الضغط على البطاقة لفتح التقرير
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -1099,22 +1298,6 @@ class ManageEmployeesScreen extends StatelessWidget {
                       ),
                     );
                   },
-
-                  trailing: IconButton(
-                    icon: const Icon(Icons.calendar_month_outlined),
-                    tooltip: 'تعديل جدول الدوام',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EmployeeScheduleScreen(
-                            employeeUid: employeeUid,
-                            employeeName: name,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
                 ),
               );
             },
@@ -1170,18 +1353,46 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       _errorMessage = null;
     });
 
+    FirebaseApp? tempApp;
     try {
-      final UserCredential userCredential = await FirebaseAuth.instance
+      try {
+        tempApp = await Firebase.initializeApp(
+          name: 'tempAdminSDK',
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      } catch (e) {
+        tempApp = Firebase.app('tempAdminSDK');
+      }
+
+      final FirebaseAuth authForTempApp = FirebaseAuth.instanceFor(
+        app: tempApp,
+      );
+
+      final UserCredential userCredential = await authForTempApp
           .createUserWithEmailAndPassword(
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
           );
+
       final String? uid = userCredential.user?.uid;
+
       if (uid != null) {
         await rtdb.FirebaseDatabase.instance.ref('users/$uid').set({
           'name': _nameController.text.trim(),
           'role': 'employee',
+          'workSchedule': {
+            'sat': false,
+            'sun': true,
+            'mon': true,
+            'tue': true,
+            'wed': true,
+            'thu': true,
+            'fri': false,
+          },
         });
+
+        await authForTempApp.signOut();
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -1202,7 +1413,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
         _errorMessage = 'حدث خطأ: ${e.message}';
       }
     } catch (e) {
-      _errorMessage = 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
+      _errorMessage = 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى: $e';
     }
 
     if (mounted) {
@@ -1342,13 +1553,15 @@ class _EmployeeReportScreenState extends State<EmployeeReportScreen> {
         return [];
       }
 
-      final allLogs = snapshot.value as Map<dynamic, dynamic>;
+      final allLogs = Map<dynamic, dynamic>.from(snapshot.value as Map);
 
       for (final dayEntry in allLogs.entries) {
-        final dailyLogs = dayEntry.value as Map<dynamic, dynamic>;
+        final dailyLogs = Map<dynamic, dynamic>.from(dayEntry.value as Map);
 
         if (dailyLogs.containsKey(widget.employeeUid)) {
-          final logData = dailyLogs[widget.employeeUid];
+          final logData = Map<dynamic, dynamic>.from(
+            dailyLogs[widget.employeeUid] as Map,
+          );
           userHistory.add({
             'date': dayEntry.key,
             'checkInTime': logData['checkInTime'],
@@ -1370,7 +1583,7 @@ class _EmployeeReportScreenState extends State<EmployeeReportScreen> {
 
   String _calculateDuration(String? checkIn, String? checkOut) {
     if (checkIn == null || checkOut == null) {
-      return ' (لم يكتمل)';
+      return '(لم يكتمل)'; // نص أوضح
     }
     try {
       final dtIn = DateTime.parse(checkIn);
@@ -1380,9 +1593,13 @@ class _EmployeeReportScreenState extends State<EmployeeReportScreen> {
       final hours = duration.inHours;
       final minutes = duration.inMinutes.remainder(60);
 
-      return ' (إجمالي: $hours ساعات و $minutes دقائق)';
+      if (hours == 0 && minutes < 1) {
+        return '(أقل من دقيقة)';
+      }
+
+      return '(إجمالي: $hours س و $minutes د)';
     } catch (e) {
-      return ' (خطأ في الحساب)';
+      return '(خطأ)';
     }
   }
 
@@ -1411,7 +1628,7 @@ class _EmployeeReportScreenState extends State<EmployeeReportScreen> {
               final log = history[index];
               final String? checkInTimeRaw = log['checkInTime'];
               String formattedDate = log['date'];
-              String formattedTime = "لا يوجد وقت دخول";
+              String formattedTime = "لم يسجل دخول";
 
               if (checkInTimeRaw != null) {
                 try {
@@ -1445,17 +1662,52 @@ class _EmployeeReportScreenState extends State<EmployeeReportScreen> {
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 elevation: 2,
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.green[100],
-                    child: Icon(Icons.check_circle, color: Colors.green[700]),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: checkOutTimeRaw == null
+                        ? Colors.orange.withOpacity(0.5)
+                        : Colors.green.withOpacity(0.5),
                   ),
-                  title: Text(
-                    formattedDate,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    'دخول: $formattedTime | خروج: $formattedCheckOut$duration',
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: ListTile(
+                    leading: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          checkOutTimeRaw == null
+                              ? Icons.hourglass_top
+                              : Icons.task_alt,
+                          color: checkOutTimeRaw == null
+                              ? Colors.orange
+                              : Colors.green,
+                        ),
+                      ],
+                    ),
+                    title: Text(
+                      formattedDate,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 5),
+                        Text('دخول: $formattedTime | خروج: $formattedCheckOut'),
+                        const SizedBox(height: 4),
+                        Text(
+                          duration,
+                          style: TextStyle(
+                            color: Colors.indigo,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -1487,6 +1739,7 @@ class EmployeeScheduleScreen extends StatefulWidget {
 class _EmployeeScheduleScreenState extends State<EmployeeScheduleScreen> {
   bool _isLoading = true;
 
+  // جدول الدوام الافتراضي
   Map<String, bool> _schedule = {
     'sat': false,
     'sun': true,
@@ -1547,9 +1800,11 @@ class _EmployeeScheduleScreenState extends State<EmployeeScheduleScreen> {
     } catch (e) {
       print("خطأ في جلب الجدول: $e");
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -1623,11 +1878,11 @@ class _EmployeeScheduleScreenState extends State<EmployeeScheduleScreen> {
                     }).toList(),
                   ),
                 ),
-
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 50),
                       padding: const EdgeInsets.all(16),
                       backgroundColor: Colors.teal,
                       foregroundColor: Colors.white,
@@ -1709,7 +1964,9 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
         );
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
