@@ -1,30 +1,17 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:attendance_app/main.dart';
+// 1. قم باستيراد الكلاس الصحيح
+import 'package:attendance_app/main.dart'; // افترضنا أن الكلاس موجود في main.dart
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('App loads smoke test', (WidgetTester tester) async {
+    // 2. استخدم اسم الكلاس الصحيح هنا
+    // (بناءً على ملف pubspec.yaml الخاص بك [cite: 1gj/attendance_app/attendance_app-f6c4088d553fa25c49f572fbf6ddc8bb49548083/pubspec.yaml])
+    await tester.pumpWidget(const AttendanceApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // 3. قمنا بتغيير الاختبار ليتناسب مع التطبيق الجديد
+    // (التطبيق الجديد لا يحتوي على عداد "0" أو "1")
+    expect(find.text('Hello World!'), findsOneWidget);
   });
 }
